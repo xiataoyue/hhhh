@@ -1,0 +1,1 @@
+/usr/bin/c++  -g   CMakeFiles/Project2h.dir/p2.cpp.o CMakeFiles/Project2h.dir/simulation.cpp.o  -o Project2h 

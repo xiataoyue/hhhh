@@ -1,0 +1,36 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/xiataoyue/Desktop/Ve280/Project2/temp/p2.cpp
+simulation.h
+/home/xiataoyue/Desktop/Ve280/Project2/temp/simulation.h
+
+/home/xiataoyue/Desktop/Ve280/Project2/temp/server_type.h
+string
+-
+
+/home/xiataoyue/Desktop/Ve280/Project2/temp/simulation.cpp
+simulation.h
+/home/xiataoyue/Desktop/Ve280/Project2/temp/simulation.h
+
+/home/xiataoyue/Desktop/Ve280/Project2/temp/simulation.h
+server_type.h
+/home/xiataoyue/Desktop/Ve280/Project2/temp/server_type.h
+iostream
+-
+cstdlib
+-
+string
+-
+fstream
+-
+sstream
+-
+algorithm
+-
+
