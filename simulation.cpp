@@ -34,8 +34,8 @@ string init_user(string& filename, Server_t& server){      //initial users of se
     return user_directory;
 }
 
-void init_post(Server_t& server, User_t *users, Tag_t *tags, unsigned int& tag_num, int& count, string& filename){     //read user_info and posts of each user and initial posts' information
-    unsigned int i, j, k;
+void init_post(Server_t& server, User_t *users, Tag_t *tags, unsigned int& tag_num, unsigned int& count, string& filename){     //read user_info and posts of each user and initial posts' information
+    unsigned int i, j, k, m;
     unsigned int postsnum, likenum, commentnum;
     unsigned int followingnum, followernum;
     string str, temp;
@@ -108,6 +108,14 @@ void init_post(Server_t& server, User_t *users, Tag_t *tags, unsigned int& tag_n
                         throw Exception_t(CAPACITY_OVERFLOW, Ostream.str());
                     }
                     server.user[i].posts[j].tags[tag_num] = temp.substr(1, temp.length() - 2);
+                    //if there exist two identical tags in a post, we don't count the score of the second one.
+                    for(m = 0; m < tag_num; m++){
+                        if(temp.substr(1, temp.length() - 2) == server.user[i].posts[j].tags[m]){
+                            tag_num++;
+                            continue;
+                        }
+                    }
+
                     tag_num++;
                     if (count == 0) {
                         server.tags[count].tag_content = temp.substr(1, temp.length() - 2);
@@ -199,7 +207,7 @@ int catch_tag(Tag_t *tags, unsigned int num, string& name){          //return th
     return -1;
 }
 
-int add_tag(Tag_t *tags, int& num, string& content, int score){      //to add score to a tag no matter it has existed or not
+int add_tag(Tag_t *tags, unsigned int& num, string& content, int score){      //to add score to a tag no matter it has existed or not
     //add score to the tags of one post
     if(catch_tag(tags, num, content) == -1){
         tags[num].tag_content = content;
@@ -212,6 +220,23 @@ int add_tag(Tag_t *tags, int& num, string& content, int score){      //to add sc
 }
 
 void follow(User_t *follower, User_t *target){
+    unsigned int i;
+    for(i = 0; i < target->num_followers; i++){
+        if(follower->username == target->follower[i]->username){
+            ostringstream Ostream;
+            Ostream << "Error: " << follower->username << " cannot follow " << target->username << "!" << endl;
+            Ostream << follower->username << " has already followed " << target->username << "." << endl;
+            throw Exception_t(INVALID_LOG, Ostream.str());
+        }
+    }
+
+    if(target->num_followers == MAX_FOLLOWERS){
+        ostringstream Ostream;
+        Ostream << "Error: " << follower->username << " cannot follow " << target->username << "!" << endl;
+        Ostream << target->username << " has maximal number of followers." << endl;
+        throw Exception_t(CAPACITY_OVERFLOW, Ostream.str());
+    }
+
     follower->following[follower->num_following] = target;
     follower->num_following ++;
 
@@ -220,6 +245,14 @@ void follow(User_t *follower, User_t *target){
 }
 
 void unfollow(User_t *unfollower, User_t *target){
+    int n = catch_user(*target->follower, target->num_followers, unfollower->username);
+    if(n == -1){
+        ostringstream Ostream;
+        Ostream << "Error: " << unfollower->username << " cannot unfollow " << target->username << "!" << endl;
+        Ostream << unfollower->username << " does not follow " << target->username << "." << endl;
+        throw Exception_t(INVALID_LOG, Ostream.str());
+    }
+
     remove_user(unfollower->following, unfollower->num_following, target);
     unfollower->num_following --;
     remove_user(target->follower, target->num_followers, unfollower);
@@ -259,25 +292,33 @@ void like(Server_t& server, User_t *users, Tag_t *tags, string& username1, strin
                 throw Exception_t(INVALID_LOG, Ostream.str());
             }
         }
+    }
 
-        users[usernum2].posts[num].like_users[users[usernum2].posts[num].num_likes] = &users[usernum1];
-        users[usernum2].posts[num].num_likes ++;
+    if(users[usernum2].posts[num].num_likes == MAX_LIKES){
+        ostringstream Ostream;
+        Ostream << "Error: " << username1 << " cannot like post #" << num
+                << " of " << username2 << "!" << endl;
+        Ostream << "Post #" << num << " of " << username2 << " has maximal number of likes." << endl;
+        throw Exception_t(CAPACITY_OVERFLOW, Ostream.str());
+    }
 
-        for(i = 0; i < users[usernum2].posts[num].num_tags; i++){
-            name = users[usernum2].posts[num].tags[i];
-            temp = catch_tag(tags, server.tag_num, name);
-            tags[temp].tag_score ++;
-        }
+    users[usernum2].posts[num].like_users[users[usernum2].posts[num].num_likes] = &users[usernum1];
+    users[usernum2].posts[num].num_likes ++;
+
+    for(i = 0; i < users[usernum2].posts[num].num_tags; i++){
+        name = users[usernum2].posts[num].tags[i];
+        temp = catch_tag(tags, server.tag_num, name);
+        tags[temp].tag_score ++;
     }
 }
 
 void unlike(Server_t& server, User_t *users, Tag_t *tags, string& username1, string& username2, unsigned int num){
-    int usernum2 = catch_user(users, server.user_num, username2);
+    int usernum = catch_user(users, server.user_num, username2);
     unsigned int i;
     int temp;
     int count = -1;
     string name;
-    if(users[usernum2].num_posts < num){
+    if(users[usernum].num_posts < num){
         ostringstream Ostream;
         Ostream << "Error: " << username1 << " cannot unlike post #" << num
                 << " of " << username2 << "!" << endl;
@@ -285,8 +326,8 @@ void unlike(Server_t& server, User_t *users, Tag_t *tags, string& username1, str
         throw Exception_t(INVALID_LOG, Ostream.str());
     }
     else{
-        for(i = 0; i < users[usernum2].posts[num].num_likes; i++){
-            if(username1.compare(users[usernum2].posts[num].like_users[i]->username) == 0){
+        for(i = 0; i < users[usernum].posts[num].num_likes; i++){
+            if(username1.compare(users[usernum].posts[num].like_users[i]->username) == 0){
                 count = i;
             }
         }
@@ -294,15 +335,15 @@ void unlike(Server_t& server, User_t *users, Tag_t *tags, string& username1, str
             ostringstream Ostream;
             Ostream << "Error: " << username1 << " cannot unlike post #" << num
                     << " of " << username2 << "!" << endl;
-            Ostream << username1 << " has not liked post #" << num << " of " <<
-            username2 << "." << endl;
+            Ostream << username1 << " has not liked post #" << num << " of "
+                    << username2 << "." << endl;
             throw Exception_t(INVALID_LOG, Ostream.str());
         }
-        remove_user(users[usernum2].posts[num].like_users, count, users[usernum2].posts[num].like_users[count]);
-        users[usernum2].posts[num].num_likes --;
+        remove_user(users[usernum].posts[num].like_users, count, users[usernum].posts[num].like_users[count]);
+        users[usernum].posts[num].num_likes --;
 
-        for(i = 0; i < users[usernum2].posts[num].num_tags; i++){
-            name = users[usernum2].posts[num].tags[i];
+        for(i = 0; i < users[usernum].posts[num].num_tags; i++){
+            name = users[usernum].posts[num].tags[i];
             temp = catch_tag(tags, server.tag_num, name);
             tags[temp].tag_score --;
         }
@@ -319,9 +360,17 @@ void comment(Server_t& server, User_t *users, Tag_t *tags, string& username1, st
     if(users[usernum2].num_posts < num){
         ostringstream Ostream;
         Ostream << "Error: " << username1 << " cannot comment post #" << num
-        << " of " << username2 << "!" << endl;
+                << " of " << username2 << "!" << endl;
         Ostream << username2 << "does not have post #" << num << "." << endl;
         throw Exception_t(INVALID_LOG, Ostream.str());
+    }
+
+    if(users[usernum2].posts[num].num_comments == MAX_COMMENTS){
+        ostringstream Ostream;
+        Ostream << "Error: " << username1 << " cannot comment post #" << num
+                << " of " << username2 << "!" << endl;
+        Ostream << "Post #" << num << " of " << username2 << " has maximal number of comments." << endl;
+        throw Exception_t(CAPACITY_OVERFLOW, Ostream.str());
     }
 
     int commentnum = users[usernum2].posts[num].num_comments;
@@ -385,10 +434,18 @@ void uncomment(Server_t& server, User_t *users, Tag_t *tags, string& username1, 
 
 void post(Server_t& server, User_t *users, Tag_t *tags, string& username, string title, string *tagname, string text, unsigned int tagnum){
     int usernum = catch_user(users, server.user_num, username);
+
+    if(users[usernum].num_posts == MAX_POSTS){
+        ostringstream Ostream;
+        Ostream << "Error: " << username << " cannot post!" << endl;
+        Ostream << username << " has maximal number of posts." << endl;
+        throw Exception_t(CAPACITY_OVERFLOW, Ostream.str());
+    }
+
     unsigned int i;
     unsigned int temp;
     for(i = 0; i < tagnum; i++){
-        add_tag(tags, reinterpret_cast<int &>(server.tag_num), tagname[i], 5);
+        add_tag(tags, server.tag_num, tagname[i], 5);
         users[usernum].posts[users[usernum].num_posts + 1].tags[i] = tagname[i];
     }
     temp = users[usernum].num_posts + 1;

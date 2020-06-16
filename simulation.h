@@ -21,13 +21,13 @@
 // TODO: Declare your functions in this header file.
 // Hint: You may need these request handling functions.
 string init_user(string& filename, Server_t& server);
-void init_post(Server_t& server, User_t *users, Tag_t *tags, unsigned int& tag_num, int& count, string& filename);
+void init_post(Server_t& server, User_t *users, Tag_t *tags, unsigned int& tag_num, unsigned int& count, string& filename);
 
 User_t *get_user(Server_t& server, const string& name);
 void find_user(ifstream& file, Server_t& server, User_t *user[], unsigned int number);
 int catch_user(User_t *users, unsigned int num, const string& name);
 int catch_tag(Tag_t *tags, unsigned int num, string& name);
-int add_tag(Tag_t *tags, int& num, string& content, int score);
+int add_tag(Tag_t *tags, unsigned int& num, string& content, int score);
 void remove_user(User_t *users[], int num, User_t *target);
 
 void like(Server_t& server, User_t *users, Tag_t *tags, string& username1, string& username2, unsigned int num);

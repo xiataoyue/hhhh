@@ -18,12 +18,11 @@ int main(int argc, char *argv[]){
     Server_t twitter;
     twitter.user_num = 0;
     twitter.tag_num = 0;
-    User_t users[20];
     string path1 = argv[1];
     string path2 = argv[2];
     string user_file;
     unsigned int tagnum = 0;
-    int count = 0;
+    unsigned int count = 0;
 
     //processing
     try {
