@@ -675,9 +675,9 @@ void logfile_process(Server_t& server, User_t *users, Tag_t *tags, string path){
             else if(command == "refresh"){
                 refresh(server, users, username1);
             }
-            /*else{
-                cout << "Unknown error when reading logfile" <<  endl;
-            }*/
+            else{
+                cout << "Unknown command!" <<  endl;
+            }
         }
         catch(Exception_t& exception){
             cout << exception.error_info;
